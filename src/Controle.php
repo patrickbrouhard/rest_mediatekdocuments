@@ -1,4 +1,5 @@
 <?php
+
 header('Content-Type: application/json');
 
 include_once("MyAccessBDD.php");
@@ -6,10 +7,9 @@ include_once("MyAccessBDD.php");
 /**
  * Contrôleur : reçoit et traite les demandes du point d'entrée
  */
-class Controle{
-	
+class Controle
+{
     /**
-     * 
      * @var MyAccessBDD
      */
     private $myAaccessBDD;
@@ -17,10 +17,11 @@ class Controle{
     /**
      * constructeur : récupère l'instance d'accès à la BDD
      */
-    public function __construct(){
-        try{
+    public function __construct()
+    {
+        try {
             $this->myAaccessBDD = new MyAccessBDD();
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $this->reponse(500, "erreur serveur");
             die();
         }
@@ -34,8 +35,19 @@ class Controle{
      * @param string|null $id
      * @param array|null $champs
      */
-    public function demande(string $methodeHTTP, string $table, ?string $id, ?array $champs){
-        $result = $this->myAaccessBDD->demande($methodeHTTP, $table, $id, $champs);
+    public function demande(
+        string $methodeHTTP,
+        string $table,
+        ?string $id,
+        ?array $champs
+    ) {
+        $result = $this->myAaccessBDD->demande(
+            $methodeHTTP,
+            $table,
+            $id,
+            $champs
+        );
+
         $this->controleResult($result);
     }
 
@@ -45,34 +57,40 @@ class Controle{
      * @param string $message message correspondant au code
      * @param array|int|string|null $result
      */
-    private function reponse(int $code, string $message, array|int|string|null $result=""){
-        $retour = array(
+    private function reponse(
+        int $code,
+        string $message,
+        array|int|string|null $result = ""
+    ) {
+        $retour = [
             'code' => $code,
             'message' => $message,
             'result' => $result
-        );
+        ];
+
         echo json_encode($retour, JSON_UNESCAPED_UNICODE);
     }
-    
+
     /**
      * contrôle si le résultat n'est pas null
      * demande l'affichage de la réponse adéquate
      * @param array|int|null $result résultat de la requête
      */
-    private function controleResult(array|int|null $result) {
-        if (!is_null($result)){
+    private function controleResult(array|int|null $result)
+    {
+        if (!is_null($result)) {
             $this->reponse(200, "OK", $result);
-        }else{	
+        } else {
             $this->reponse(400, "requete invalide");
-        }        
+        }
     }
-	
+
     /**
      * authentification incorrecte
-     * demande d'afficher un messaage d'erreur
+     * demande d'afficher un message d'erreur
      */
-    public function unauthorized(){
+    public function unauthorized()
+    {
         $this->reponse(401, "authentification incorrecte");
     }
-    
 }
