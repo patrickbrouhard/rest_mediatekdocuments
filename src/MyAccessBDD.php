@@ -1,5 +1,6 @@
 <?php
 include_once("AccessBDD.php");
+require_once("TypeDocument.php");
 
 /**
  * Classe de construction des requêtes SQL
@@ -12,7 +13,10 @@ include_once("AccessBDD.php");
  */
 class MyAccessBDD extends AccessBDD
 {
-	    
+    public const LIVRE = "livre";
+    public const DVD = "dvd";
+    public const REVUE = "revue";
+    
     /**
      * constructeur qui appelle celui de la classe mère
      */
@@ -49,12 +53,26 @@ class MyAccessBDD extends AccessBDD
             case "etat" :
                 // select portant sur une table contenant juste id et libelle
                 return $this->selectTableSimple($table);
-            case "" :
-                // return $this->uneFonction(parametres);
             default:
                 // cas général
                 return $this->selectTuplesOneTable($table, $champs);
         }
+    }
+    
+    private function isChampsObligatoiresAbsents(?array $champs) : bool
+    {
+        if (empty($champs)) {
+            return true;
+        }
+
+        $obligatoires = ["idGenre", "idPublic", "idRayon"];
+
+        foreach ($obligatoires as $champ) {
+            if (!isset($champs[$champ])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -66,9 +84,17 @@ class MyAccessBDD extends AccessBDD
      */
     protected function traitementInsert(string $table, ?array $champs) : ?int
     {
+        if ($this->isChampsObligatoiresAbsents($champs)) {
+            return null;
+        }
+        
         switch ($table) {
-            case "" :
-                // return $this->uneFonction(parametres);
+            case "livre":
+                return $this->insertLivre($champs);
+            case "dvd":
+                return $this->insertDvd($champs);
+            case "revue":
+                return $this->insertRevue($champs);
             default:
                 // cas général
                 return $this->insertOneTupleOneTable($table, $champs);
@@ -85,9 +111,17 @@ class MyAccessBDD extends AccessBDD
      */
     protected function traitementUpdate(string $table, ?string $id, ?array $champs) : ?int
     {
+        if (empty($champs)) {
+            return null;
+        }
+        
         switch ($table) {
-            case "" :
-                // return $this->uneFonction(parametres);
+            case "livre":
+                return $this->updateLivre($id, $champs);
+            case "dvd":
+                return $this->updateDvd($id, $champs);
+            case "revue":
+                return $this->updateRevue($id, $champs);
             default:
                 // cas général
                 return $this->updateOneTupleOneTable($table, $id, $champs);
@@ -103,9 +137,23 @@ class MyAccessBDD extends AccessBDD
      */
     protected function traitementDelete(string $table, ?array $champs) : ?int
     {
+        if (empty($champs) || empty($champs['id'])) {
+            return null;
+        }
+        
+        $id = $champs['id'];
+        
+        if (!$this->isOktoDeleteDocument($table, $id)) {
+            return null;
+        }
+    
         switch ($table) {
-            case "" :
-                // return $this->uneFonction(parametres);
+            case "livre":
+                return $this->deleteLivre($id);
+            case "dvd":
+                return $this->deleteDvd($id);
+            case "revue":
+                return $this->deleteRevue($id);
             default:
                 // cas général
                 return $this->deleteTuplesOneTable($table, $champs);
@@ -167,7 +215,7 @@ class MyAccessBDD extends AccessBDD
     /**
      * demande de modification (update) d'un tuple dans une table
      * @param string $table
-     * @param string\null $id
+     * @param string|null $id
      * @param array|null $champs
      * @return int|null nombre de tuples modifiés (0 ou 1) ou null si erreur
      */
@@ -292,4 +340,489 @@ class MyAccessBDD extends AccessBDD
         return $this->conn->queryBDD($requete, $champNecessaire);
     }
     
+    /**
+    * Génère le prochain identifiant disponible pour un type de document donné.
+    *
+    * Cconvention Mediatek :
+    *  - livres : commencent par 0xxxx
+    *  - revues : commencent par 1xxxx
+    *  - dvd    : commencent par 2xxxx
+    *
+    * @param TypeDocument $type Type de document (LIVRE | DVD | REVUE)
+    * @return string Nouvel identifiant formaté
+    * @throws Exception si type inconnu
+    */
+    private function getNextId(TypeDocument $type): string
+    {
+        $table = $type->table();
+        $prefixe = $type->index(); // "0", "1", "2"
+        
+        // trouve la ligne avec l'id le plus élevé et pose un
+        // verrou exclusif sur la ligne tant qu'on a pas fait COMMIT (FOR UPDATE)
+        // (aucune autre transaction ne peut calculer le même id)
+        $requete = "SELECT id FROM $table ORDER BY id DESC LIMIT 1 FOR UPDATE;";
+        $result = $this->conn->queryBDD($requete);
+        
+        // Si la table est vide : premier id de la table
+        if (empty($result)) {
+            return $prefixe . "0001";
+        }
+        $dernierId = $result[0]["id"];
+        
+        // Extraire la partie numérique (tout sauf le premier caractère)
+        $numerique = (int)substr($dernierId, 1);
+        $numerique++;
+        
+        // Reconstruire l'ID : préfixe + partie numérique
+        return $prefixe . str_pad($numerique, 4, "0", STR_PAD_LEFT);
+    }
+    
+    private function insertDocument(string $id, array $champs): ?int
+    {
+        return $this->insertOneTupleOneTable("document", [
+            "id" => $id,
+            "titre" => $champs["titre"],
+            "image" => $champs["image"] ?? null,
+            "idRayon" => $champs["idRayon"],
+            "idPublic" => $champs["idPublic"],
+            "idGenre" => $champs["idGenre"]
+        ]);
+    }
+    
+    private function updateDocument(string $id, array $champs): ?int
+    {
+        $listeBlanche = ["titre", "image", "idRayon", "idPublic", "idGenre"];
+
+        // champs NOT NULL en base
+        $champsNonNull = ["idRayon", "idPublic", "idGenre"];
+
+        $donnees = [];
+
+        foreach ($listeBlanche as $key) {
+            if (array_key_exists($key, $champs)) {
+
+                // protection : ces champs ne doivent pas être null dans la BDD
+                if (in_array($key, $champsNonNull) && $champs[$key] === null) {
+                    return null;
+                }
+
+                $donnees[$key] = $champs[$key];
+            }
+        }
+        return $this->updateOneTupleOneTable("document", $id, $donnees);
+    }
+    
+    /**
+     * Insère un livre dans la base
+     * Si un insert échoue, il throw et déclenche le catch dans transaction()
+     * et donc le rollback
+     *
+     * @param array $champs
+     * @return ?int
+     */
+    private function insertLivre(array $champs): ?int
+    {
+        try {
+            // appel de transaction en lui passant la fonction anonyme (c'est à
+            // dire le bloc en dessous)
+            $this->conn->transaction(function () use ($champs) {
+
+                // Génération d’un nouvel identifiant sécurisé (FOR UPDATE)
+                $id = $this->getNextId(TypeDocument::LIVRE);
+
+                // insertion document (table mère)
+                if (!$this->insertDocument($id, $champs)) {
+                    throw new Exception("Erreur insertion document");
+                }
+
+                // insertion livres_dvd
+                if (!$this->insertOneTupleOneTable("livres_dvd", [
+                    "id" => $id
+                ])) {
+                    throw new Exception("Erreur insertion livres_dvd");
+                }
+
+                // insertion livre (table spécifique)
+                if (!$this->insertOneTupleOneTable("livre", [
+                    "id" => $id,
+                    "ISBN" => $champs["ISBN"] ?? null,
+                    "auteur" => $champs["auteur"] ?? null,
+                    "collection" => $champs["collection"] ?? null
+                ])) {
+                    throw new Exception("Erreur insertion livre");
+                }
+            });
+            return 1;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+    
+    /**
+    * Insère un DVD dans la base
+    *
+    * Si un insert échoue, il throw et déclenche le catch dans transaction()
+    * et donc le rollback
+    *
+    * @param array $champs
+    * @return int 1 si succès, 0 sinon
+    */
+    private function insertDvd(array $champs): ?int
+    {
+        try {
+
+            $this->conn->transaction(function () use ($champs) {
+
+                $id = $this->getNextId(TypeDocument::DVD);
+
+                if (!$this->insertDocument($id, $champs)) {
+                    throw new Exception("Erreur insertion document");
+                }
+
+                if (!$this->insertOneTupleOneTable("livres_dvd", [
+                    "id" => $id
+                ])) {
+                    throw new Exception("Erreur insertion livres_dvd");
+                }
+
+                if (!$this->insertOneTupleOneTable("dvd", [
+                    "id" => $id,
+                    "realisateur" => $champs["realisateur"] ?? null,
+                    "duree" => $champs["duree"] ?? null,
+                    "synopsis" => $champs["synopsis"] ?? null
+                ])) {
+                    throw new Exception("Erreur insertion dvd");
+                }
+            });
+            return 1;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * Insère une revue dans la base (transaction atomique)
+     *
+     * Si un insert échoue, il throw et déclenche le catch dans transaction()
+     * et donc le rollback
+     *
+     * @param array $champs
+     * @return int 1 si succès, 0 sinon
+     */
+    private function insertRevue(array $champs): ?int
+    {
+        try {
+
+            $this->conn->transaction(function () use ($champs) {
+
+                $id = $this->getNextId(TypeDocument::REVUE);
+
+                if (!$this->insertDocument($id, $champs)) {
+                    throw new Exception("Erreur insertion document");
+                }
+
+                if (!$this->insertOneTupleOneTable("revue", [
+                    "id" => $id,
+                    "periodicite" => $champs["periodicite"] ?? null,
+                    "delaiMiseADispo" => $champs["delaiMiseADispo"] ?? null
+                ])) {
+                    throw new Exception("Erreur insertion revue");
+                }
+            });
+            return 1;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * Met à jour un livre
+     *
+     * Met à jour :
+     * - document
+     * - livre
+     *
+     * rollback automatique si erreur
+     *
+     * @param string $id
+     * @param array $champs
+     * @return int 1 si succès, 0 sinon
+     */
+    private function updateLivre(string $id, array $champs): ?int
+    {
+        try {
+
+            $this->conn->transaction(function () use ($id, $champs) {
+
+                if ($this->updateDocument($id, $champs) === null) {
+                    throw new Exception("Erreur update document");
+                }
+
+                $specific = [];
+
+                foreach (["ISBN", "auteur", "collection"] as $key) {
+                    if (array_key_exists($key, $champs)) {
+                        $specific[$key] = $champs[$key];
+                    }
+                }
+
+                if (!empty($specific)) {
+                    if ($this->updateOneTupleOneTable(
+                        "livre",
+                        $id,
+                        $specific
+                    ) === null) {
+                        throw new Exception("Erreur update livre");
+                    }
+                }
+            });
+            return 1;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * Met à jour un DVD
+     *
+     * Met à jour :
+     * - document
+     * - dvd
+     *
+     * rollback automatique si erreur
+     *
+     * @param string $id
+     * @param array $champs
+     * @return int 1 si succès, 0 sinon
+     */
+    private function updateDvd(string $id, array $champs): ?int
+    {
+        try {
+
+            $this->conn->transaction(function () use ($id, $champs) {
+
+                if ($this->updateDocument($id, $champs) === null) {
+                    throw new Exception("Erreur update document");
+                }
+
+                $specific = [];
+
+                foreach (["realisateur", "duree", "synopsis"] as $key) {
+                    if (array_key_exists($key, $champs)) {
+                        $specific[$key] = $champs[$key];
+                    }
+                }
+
+                if (!empty($specific)) {
+
+                    if ($this->updateOneTupleOneTable(
+                        "dvd",
+                            $id,
+                        $specific,
+                    ) === null) {
+                        throw new Exception("Erreur update dvd");
+                    }
+                }
+            });
+            return 1;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * Met à jour une revue
+     *
+     * Met à jour :
+     * - document
+     * - revue
+     *
+     * rollback automatique si erreur
+     *
+     * @param string $id
+     * @param array $champs
+     * @return int 1 si succès, 0 sinon
+     */
+    private function updateRevue(string $id, array $champs): ?int
+    {
+        try {
+
+            $this->conn->transaction(function () use ($id, $champs) {
+
+                if ($this->updateDocument($id, $champs) === null) {
+                    throw new Exception("Erreur update document");
+                }
+
+                $specific = [];
+
+                foreach (["periodicite", "delaiMiseADispo"] as $key) {
+                    if (array_key_exists($key, $champs)) {
+                        $specific[$key] = $champs[$key];
+                    }
+                }
+
+                if (!empty($specific)) {
+
+                    if ($this->updateOneTupleOneTable(
+                        "revue",
+                            $id,
+                        $specific,
+                    ) === null) {
+                        throw new Exception("Erreur update revue");
+                    }
+                }
+            });
+            return 1;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * Supprime un livre
+     *
+     * Supprime successivement :
+     * - livre
+     * - livres_dvd
+     * - document
+     *
+     * rollback automatique si erreur
+     *
+     * @param string $id
+     * @return int 1 si succès, 0 sinon
+     */
+    private function deleteLivre(string $id): ?int
+    {
+        try {
+            $this->conn->transaction(function () use ($id) {
+
+                if ($this->deleteTuplesOneTable("livre", ["id" => $id]) === null) {
+                    throw new Exception("Erreur suppression livre");
+                }
+
+                if ($this->deleteTuplesOneTable("livres_dvd", ["id" => $id]) === null) {
+                    throw new Exception("Erreur suppression livres_dvd");
+                }
+
+                if ($this->deleteTuplesOneTable("document", ["id" => $id]) === null) {
+                    throw new Exception("Erreur suppression document");
+                }
+
+            });
+            return 1;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * Supprime un dvd (transaction atomique)
+     *
+     * Supprime successivement :
+     * - dvd
+     * - livres_dvd
+     * - document
+     *
+     * rollback automatique si erreur
+     *
+     * @param string $id
+     * @return int 1 si succès, 0 sinon
+     */
+    private function deleteDvd(string $id): ?int
+    {
+        try {
+
+            $this->conn->transaction(function () use ($id) {
+
+                if ($this->deleteTuplesOneTable("dvd", ["id" => $id]) === null) {
+                    throw new Exception("Erreur suppression dvd");
+                }
+
+                if ($this->deleteTuplesOneTable("livres_dvd", ["id" => $id]) === null) {
+                    throw new Exception("Erreur suppression livres_dvd");
+                }
+
+                if ($this->deleteTuplesOneTable("document", ["id" => $id]) === null) {
+                    throw new Exception("Erreur suppression document");
+                }
+
+            });
+            return 1;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+    
+    /**
+     * Supprime une revue
+     *
+     * Supprime successivement :
+     * - revue
+     * - document
+     *
+     * rollback automatique si erreur
+     *
+     * @param string $id
+     * @return int 1 si succès, 0 sinon
+     */
+    private function deleteRevue(string $id): ?int
+    {
+        try {
+
+            $this->conn->transaction(function () use ($id) {
+
+                if ($this->deleteTuplesOneTable("revue", ["id" => $id]) === null) {
+                    throw new Exception("Erreur suppression revue");
+                }
+
+                if ($this->deleteTuplesOneTable("document", ["id" => $id]) === null) {
+                    throw new Exception("Erreur suppression document");
+                }
+
+            });
+            return 1;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+    
+    private function isOktoDeleteDocument(string $table, string $id) : bool
+    {
+        // vérifie exemplaires
+        $exemplairesCount = $this->conn->queryBDD(
+            "SELECT COUNT(*) as nb FROM exemplaire WHERE id = :id",
+            ["id"=>$id]
+        );
+
+        if ($exemplairesCount[0]["nb"] != 0) {
+            return false;
+        }
+
+        // vérifie commandes
+        if ($table == "livre" || $table == "dvd") {
+            $commandes = $this->conn->queryBDD(
+                "SELECT COUNT(*) as nb FROM commandedocument WHERE idLivreDvd = :id",
+                ["id"=>$id]
+            );
+
+            if ($commandes[0]["nb"] != 0) {
+                return false;
+            }
+        }
+
+        // vérifie abonnements (revues uniquement)
+        if ($table == "revue") {
+            $abonnements = $this->conn->queryBDD(
+                "SELECT COUNT(*) as nb FROM abonnement WHERE idRevue = :id",
+                ["id"=>$id]
+            );
+
+            if ($abonnements[0]["nb"] != 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
+
