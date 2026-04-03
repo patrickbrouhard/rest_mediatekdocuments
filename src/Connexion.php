@@ -141,4 +141,38 @@ class Connexion
             throw $e;
         }
     }
+    
+    public function beginTransaction(): bool
+    {
+        return $this->conn->beginTransaction();
+    }
+
+    public function commit(): bool
+    {
+        return $this->conn->commit();
+    }
+
+    public function rollBack(): bool
+    {
+        return $this->conn->rollBack();
+    }
+
+    /**
+     * Exécute un bloc de code dans une transaction.
+     * Rollback automatique en cas d'exception.
+     */
+    public function transaction(callable $callback)
+    {
+        try {
+            // démarre la transaction
+            $this->conn->beginTransaction();
+            // On passe l'instance de connexion pour pouvoir appeler updateBDD(), etc.
+            $callback($this);
+            $this->conn->commit();
+        } catch (\Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
+    }
 }
+
