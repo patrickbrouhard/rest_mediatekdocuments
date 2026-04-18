@@ -63,6 +63,10 @@ class MyAccessBDD extends AccessBDD
                 return $this->selectExemplairesRevue($champs);
             case "commandedocument":
                 return $this->selectCommandesDocument($champs['typemedia']);
+            case "abonnement":
+                return $this->selectCommandesRevue();
+            case "abonnements_expirant_dans":
+                return $this->getAbonnementsExpirantDans($champs['jours'] ?? 30);
             case "genre" :
             case "public" :
             case "rayon" :
@@ -93,6 +97,8 @@ class MyAccessBDD extends AccessBDD
                 return $this->insertRevue($champs);
             case "commandedocument":
                 return $this->insertCommandeDocument($champs);
+            case "abonnement":
+                return $this->insertCommandeRevue($champs);
             default:
                 // cas général
                 return $this->insertOneTupleOneTable($table, $champs);
@@ -158,6 +164,8 @@ class MyAccessBDD extends AccessBDD
                 return $this->deleteRevue($id);
             case "commandedocument":
                 return $this->deleteCommandeDocument($id);
+            case "abonnement":
+                return $this->deleteCommandeRevue($id);
             default:
                 // cas général
                 return $this->deleteTuplesOneTable($table, $champs);
@@ -994,6 +1002,123 @@ class MyAccessBDD extends AccessBDD
         } catch (Exception $e) {
             return 0;
         }
+    }
+
+    private function selectCommandesRevue(): array
+    {
+        $requete = "
+        SELECT
+            a.id,
+            a.idRevue,
+            c.dateCommande,
+            a.dateFinAbonnement,
+            c.montant
+
+        FROM abonnement a
+        JOIN commande c ON a.id = c.id
+        JOIN revue r ON a.idRevue = r.id
+
+        ORDER BY c.dateCommande DESC
+    ";
+        return $this->conn->queryBDD($requete);
+    }
+
+    private function insertCommandeRevue(array $champs): ?int
+    {
+        if ($this->isChampsObligatoiresAbsents(
+            ["dateCommande", "montant", "dateFinAbonnement", "idRevue"],
+            $champs
+        )) {
+            return null;
+        }
+
+        if (strtotime($champs["dateFinAbonnement"]) < strtotime($champs["dateCommande"])) {
+            return null;
+        }
+
+        try {
+            $this->conn->transaction(function () use ($champs) {
+
+                $requete = "SELECT id FROM commande ORDER BY id DESC LIMIT 1 FOR UPDATE;";
+                $result = $this->conn->queryBDD($requete);
+
+                $dernierId = empty($result) ? 0 : (int)$result[0]["id"];
+                $nouvelId = str_pad($dernierId + 1, 5, "0", STR_PAD_LEFT);
+
+                if (!$this->insertOneTupleOneTable("commande", [
+                    "id" => $nouvelId,
+                    "dateCommande" => $champs["dateCommande"],
+                    "montant" => $champs["montant"]
+                ])) {
+                    throw new Exception("Erreur insertion commande");
+                }
+
+                if (!$this->insertOneTupleOneTable("abonnement", [
+                    "id" => $nouvelId,
+                    "dateFinAbonnement" => $champs["dateFinAbonnement"],
+                    "idRevue" => $champs["idRevue"]
+                ])) {
+                    throw new Exception("Erreur insertion abonnement");
+                }
+            });
+
+            return 1;
+
+        } catch (Exception $e) {
+            echo $e->getMessage();
+            return 0;
+        }
+    }
+
+    /**
+     * Supprime une commande de document
+     *
+     * Supprime la ligne dans commande.
+     * La suppression dans "abonnement" est gérée par trigger SQL.
+     *
+     * @param string $id identifiant de la commande
+     * @return int nombre de tuples supprimés
+     */
+    private function deleteCommandeRevue(string $id): ?int
+    {
+        try {
+            return $this->deleteTuplesOneTable("commande", [
+                "id" => $id
+            ]);
+            return 1;
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Retourne les abonnements dont la date de fin intervient dans les X prochains jours
+     * (entre aujourd’hui et aujourd’hui + X jours).
+     * @param int $jours
+     * @return array
+     */
+    public function getAbonnementsExpirantDans(int $jours = 30): array
+    {
+        $requete = "
+        SELECT
+            a.id,
+            d.titre,
+            a.dateFinAbonnement
+
+        FROM abonnement a
+        JOIN commande c ON a.id = c.id
+        JOIN revue r ON a.idRevue = r.id
+        JOIN document d ON r.id = d.id
+
+        WHERE a.dateFinAbonnement BETWEEN CURDATE()
+        AND DATE_ADD(CURDATE(), INTERVAL $jours DAY)
+
+        ORDER BY a.dateFinAbonnement ASC
+    ";
+
+        //$result = $this->conn->queryBDD($requete, [":jours" => $jours]); // :jours ne marche pas ???
+        $result = $this->conn->queryBDD($requete);
+        return $result ?? [];
     }
 }
 
