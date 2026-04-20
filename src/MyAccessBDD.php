@@ -60,7 +60,7 @@ class MyAccessBDD extends AccessBDD
             case "revue" :
                 return $this->selectAllRevues();
             case "exemplaire" :
-                return $this->selectExemplairesRevue($champs);
+                return $this->selectExemplairesDocument($champs);
             case "commandedocument":
                 return $this->selectCommandesDocument($champs['typemedia']);
             case "abonnement":
@@ -126,6 +126,8 @@ class MyAccessBDD extends AccessBDD
                 return $this->updateDvd($id, $champs);
             case "revue":
                 return $this->updateRevue($id, $champs);
+            case "exemplaire" :
+                return $this->updateExemplaires($champs);
             case "commandedocument":
                 return $this->updateCommandeDocument($id, $champs);
             default:
@@ -162,6 +164,8 @@ class MyAccessBDD extends AccessBDD
                 return $this->deleteDvd($id);
             case "revue":
                 return $this->deleteRevue($id);
+            case "exemplaire" :
+                return $this->deleteExemplaires($champs);
             case "commandedocument":
                 return $this->deleteCommandeDocument($id);
             case "abonnement":
@@ -336,7 +340,7 @@ class MyAccessBDD extends AccessBDD
      * @param array|null $champs
      * @return array|null
      */
-    private function selectExemplairesRevue(?array $champs) : ?array
+    private function selectExemplairesDocument(?array $champs) : ?array
     {
         if (empty($champs)) {
             return null;
@@ -345,8 +349,9 @@ class MyAccessBDD extends AccessBDD
             return null;
         }
         $champNecessaire['id'] = $champs['id'];
-        $requete = "Select e.id, e.numero, e.dateAchat, e.photo, e.idEtat ";
+        $requete = "Select e.id, e.numero, e.dateAchat, e.photo, e.idEtat, et.libelle as libelleEtat ";
         $requete .= "from exemplaire e join document d on e.id=d.id ";
+        $requete .= "JOIN etat et on (e.idEtat=et.id) ";
         $requete .= "where e.id = :id ";
         $requete .= "order by e.dateAchat DESC";
         return $this->conn->queryBDD($requete, $champNecessaire);
@@ -1119,6 +1124,63 @@ class MyAccessBDD extends AccessBDD
         //$result = $this->conn->queryBDD($requete, [":jours" => $jours]); // :jours ne marche pas ???
         $result = $this->conn->queryBDD($requete);
         return $result ?? [];
+    }
+
+    public function updateExemplaires(array $champs): ?int
+    {
+        if ($this->champsManquants($champs, ['numero','idEtat','id'])) {
+            return null;
+        }
+
+
+        $requete = "
+        UPDATE exemplaire 
+        SET idEtat = :IdEtat 
+        WHERE id = :Id AND numero = :Numero
+        ";
+
+        $champsRequete = [
+            'Numero' => $champs['numero'],
+            'IdEtat' => $champs['idEtat'],
+            'Id' => $champs['id']
+        ];
+
+        return $this->conn->updateBDD($requete, $champsRequete);
+    }
+
+    public function deleteExemplaires(array $champs): ?int
+    {
+        if ($this->champsManquants($champs, ['numero', 'id'])) {
+            return null;
+        }
+
+        $requete = "
+        DELETE FROM exemplaire
+        WHERE id = :Id AND numero = :Numero
+        ";
+
+        $champsRequete = [
+            'Numero' => $champs['numero'],
+            'Id' => $champs['id']
+        ];
+
+        return $this->conn->updateBDD($requete, $champsRequete);
+    }
+
+    /**
+     * Vérifie si des champs obligatoires sont absents dans le tableau fourni.
+     * @param array $champs
+     * @param array $obligatoires
+     * @return bool
+     */
+    private function champsManquants(array $champs, array $obligatoires): bool
+    {
+        foreach ($obligatoires as $champObligatoire) {
+            if (!array_key_exists($champObligatoire, $champs)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
