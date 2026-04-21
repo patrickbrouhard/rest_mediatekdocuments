@@ -23,6 +23,16 @@ if (!$url->authentification()) {
     $methodeHTTP = $url->recupMethodeHTTP();
     //récupère les données passées dans l'url (visibles ou cachées)
     $table = $url->recupVariable("table");
+
+    // Si aucune ressource demandée
+    if ($table === null || $table === "") {
+        http_response_code(404);
+        echo json_encode([
+            "error" => "Aucune ressource demandée"
+        ]);
+        exit;
+    }
+
     $id = $url->recupVariable("id");
     $champs = $url->recupVariable("champs", "json");
     // demande au controleur de traiter la demande
