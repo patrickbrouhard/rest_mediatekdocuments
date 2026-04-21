@@ -175,6 +175,26 @@ class MyAccessBDD extends AccessBDD
                 return $this->deleteTuplesOneTable($table, $champs);
         }
     }
+
+    /**
+     * Traite les requêtes POST spécifiques ne relevant pas du CRUD classique.
+     *
+     * @param string $table
+     * @param array|null $champs
+     * @return array|null
+     */
+    protected function traitementPostSpecial(string $table, ?array $champs): ?array
+    {
+        if (empty($champs) || empty($champs['login']) || empty($champs['password'])) {
+            return null;
+        }
+
+        if ($table === "authentification") {
+            return $this->authentifierUtilisateur($champs['login'],$champs['password']) ?? [];
+        }
+
+        return null;
+    }
         
     /**
      * récupère les tuples d'une seule table
@@ -1181,6 +1201,47 @@ class MyAccessBDD extends AccessBDD
             }
         }
         return false;
+    }
+
+    /**
+     * Vérifie les identifiants d'un utilisateur.
+     *
+     * Recherche l'utilisateur par son login, puis compare le mot de passe fourni
+     * avec le hash stocké en base à l'aide de password_verify().
+     *
+     * @param string $login Login de l'utilisateur
+     * @param string $motDePasse Mot de passe en clair fourni par le client
+     * @return array|null Tableau associatif contenant les informations utilisateur
+     */
+    public function authentifierUtilisateur(string $login, string $motDePasse): ?array
+    {
+        $requete = "
+        SELECT u.id, u.login, u.pwd, u.idService, s.libelle AS libelleService
+        FROM utilisateur u
+        JOIN service s ON u.idService = s.id
+        WHERE u.login = :login
+    ";
+
+        $result = $this->conn->queryBDD($requete, [
+            "login" => $login
+        ]);
+
+        if (empty($result)) {
+            return null;
+        }
+
+        $utilisateur = $result[0];
+
+        // Utilise la fonction native et sécurisée password_verify pour
+        // comparer le mot de passe au hachage stocké ; retourne null si échec.
+        if (!password_verify($motDePasse, $utilisateur["pwd"])) {
+            return null;
+        }
+
+        // Il ne faut pas renvoyer le mot de passe, même hashé. Donc, on l'enlève.
+        unset($utilisateur["pwd"]);
+
+        return $utilisateur;
     }
 }
 
