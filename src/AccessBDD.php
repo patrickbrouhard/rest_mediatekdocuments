@@ -66,7 +66,8 @@ abstract class AccessBDD
                 return $this->traitementSelect($table, $champs);
 
             case 'POST':
-                return $this->traitementInsert($table, $champs);
+                return $this->traitementPostSpecial($table, $champs)
+                    ?? $this->traitementInsert($table, $champs);
 
             case 'PUT':
                 return $this->traitementUpdate($table, $id, $champs);
