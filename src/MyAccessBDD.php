@@ -12,10 +12,16 @@ include_once("AccessBDD.php");
  */
 class MyAccessBDD extends AccessBDD
 {
+    /** Type de document livre. */
     public const LIVRE = "livre";
+
+    /** Type de document DVD. */
     public const DVD = "dvd";
+
+    /** Type de document revue. */
     public const REVUE = "revue";
 
+    /** Préfixes utilisés pour générer les identifiants par type de document. */
     private const PREFIXES = [
         self::LIVRE => 0,
         self::REVUE => 1,
@@ -1108,6 +1114,12 @@ class MyAccessBDD extends AccessBDD
         return $this->conn->queryBDD($requete);
     }
 
+    /**
+     * Insère une commande de revue (transaction atomique).
+     *
+     * @param array $champs Données de commande et d'abonnement
+     * @return int|null 1 si succès, 0 si échec, null si données invalides
+     */
     private function insertCommandeRevue(array $champs): ?int
     {
         if ($this->isChampsObligatoiresAbsents(
@@ -1156,7 +1168,7 @@ class MyAccessBDD extends AccessBDD
     }
 
     /**
-     * Supprime une commande de document
+     * Supprime une commande de revue
      *
      * Supprime la ligne dans commande.
      * La suppression dans "abonnement" est gérée par trigger SQL.
