@@ -1,4 +1,4 @@
-name: Deploy API to AwardSpace (SFTP)
+name: Déploiement API via FTP (AwardSpace)
 
 on:
   push:
@@ -8,14 +8,27 @@ on:
 
 jobs:
   ftp-deploy:
-    name: Upload via SFTP
+    name: Upload via FTP
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # Récupération du code du dépôt
+      - name: Checkout code source
         uses: actions/checkout@v4
 
-      - name: Deploy files via SFTP
+      # Installation de PHP et Composer
+      - name: Installation de PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          tools: composer
+
+      # Installation des dépendances en mode production
+      - name: Installation des dépendances Composer
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+      # Envoi des fichiers vers le serveur FTP
+      - name: Deploy files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -24,3 +37,13 @@ jobs:
           protocol: ftp
           port: 21
           server-dir: /mediatekdocapi.atwebpages.com/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/.env
+            **/.ftp-deploy-sync-state.json
+            **/README.md
+            **/*.bat
+            **/*.sh
+            **/sql/**
