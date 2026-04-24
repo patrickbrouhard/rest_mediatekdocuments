@@ -42,7 +42,6 @@ jobs:
             **/.git*/**
             **/.github/**
             **/.env
-            **/.ftp-deploy-sync-state.json
             **/README.md
             **/*.bat
             **/*.sh
