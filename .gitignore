@@ -1,6 +1,5 @@
 /nbproject/private/
 /vendor/
 /.idea
-/docs
 .phpdoc
 /src/.env
