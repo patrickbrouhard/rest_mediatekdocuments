@@ -1,0 +1,30 @@
+name: API tests avec Newman
+
+on:
+  workflow_run:
+    workflows:
+      - Déploiement API via FTP (AwardSpace) # Déclenchement après le déploiement FTP
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    # Ne lance les tests que si le déploiement a réussi ou si le workflow est déclenché manuellement
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Attendre quelques secondes pour que le déploiement soit effectif
+        run: sleep 10
+
+      - name: Run Postman collection
+        run: |
+          newman run postman/Mediatek_API_Tests_CSharp_Compatible.postman_collection.json \
+            --env-var "baseUrl=http://mediatekdocapi.atwebpages.com"

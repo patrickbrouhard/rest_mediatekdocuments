@@ -1,90 +1,175 @@
-# Présentation de l'API
+# API REST MediaTekDocuments
 
-Cette API, écrite en PHP, est basée sur la structure de l'API présentée dans le dépôt suivant :  
-[https://github.com/CNED-SLAM/rest_mediatekdocuments](https://github.com/CNED-SLAM/rest_mediatekdocuments)  
-Le readme de ce dépôt présente la structure de la base de l'API (rôle de chaque fichier) et comment l'exploiter.  
-Les ajouts faits dans cette API ne concernent que les fichiers `.env` (qui contient les données sensibles d'authentification et d'accès à la BDD) et `MyAccessBDD.php` (dans lequel de nouvelles fonctions ont été ajoutées pour répondre aux demandes de l'application).  
-Cette API permet d'exécuter des requêtes SQL sur la BDD Mediatek86 créée avec le SGBDR MySQL.  
-Elle est accessible via une authentification "basique" (avec login="admin", pwd="adminpwd").  
-Sa vocation actuelle est de répondre aux demandes de l'application MediaTekDocuments, mise en ligne sur le dépôt :  
-[https://github.com/patrickbrouhard/mediatekdocuments](https://github.com/patrickbrouhard/mediatekdocuments)
+## Présentation
 
-# Installation de l'API en local
+Cette API REST, écrite en PHP, est basée sur l’API fournie par le CNED pour le projet **MediaTekDocuments** :
+https://github.com/CNED-SLAM/rest_mediatekdocuments
 
-Pour tester l'API REST en local, voici le mode opératoire (similaire à celui donné dans le dépôt d'API de base) :
+Le dépôt d’origine fournit une base permettant d’exécuter des requêtes sur la base de données `mediatek86`.
 
-- Installer les outils nécessaires (WampServer ou équivalent, NetBeans ou équivalent pour gérer l'API dans un IDE, Postman pour les tests).
-- Télécharger le zip du code de l'API et le dézipper dans le dossier `www` de wampserver (renommer le dossier en `rest_mediatekdocuments`, donc en enlevant `_master`).
-- Si *Composer* n'est pas installé, le télécharger avec ce lien et l'installer : [https://getcomposer.org/Composer-Setup.exe](https://getcomposer.org/Composer-Setup.exe)
-- Dans une fenêtre de commandes ouverte en mode admin, aller dans le dossier de l'API et taper `composer install` puis valider pour recréer le vendor.
-- Récupérer le script `metiak86.sql` en racine du projet puis, avec phpMyAdmin, créer la BDD `mediatek86` et, dans cette BDD, exécuter le script pour remplir la BDD.
-- Ouvrir l'API dans NetBeans pour pouvoir analyser le code et le faire évoluer suivant les besoins.
-- Pour tester l'API avec Postman, ne pas oublier de configurer l'authentification (onglet "Authorization", Type "Basic Auth", Username "admin", Password "adminpwd").
+Ce dépôt correspond à une **évolution de cette API existante**. Le travail réalisé consiste à adapter et enrichir l’API afin de répondre aux besoins de l’application C# **MediaTekDocuments**, disponible sur le dépôt suivant :
+https://github.com/patrickbrouhard/mediatekdocuments
 
-# Exploitation de l'API
+L’API permet d’effectuer des opérations CRUD sur la base de données MySQL `mediatek86`, ainsi que des traitements spécifiques liés :
 
-Adresse de l'API (en local) :  
+* aux livres, DVD et revues ;
+* aux exemplaires ;
+* aux commandes de documents ;
+* aux abonnements de revues ;
+* à l’authentification applicative des utilisateurs.
+
+## Contexte du projet
+
+Le projet MediaTekDocuments repose sur deux composants principaux :
+
+* une application cliente C# WinForms ;
+* une API REST PHP connectée à une base de données MySQL.
+
+L’application C# utilise cette API pour consulter, créer, modifier et supprimer des données relatives à la gestion documentaire d’une médiathèque.
+
+L’objectif de ce dépôt est donc de fournir une API adaptée aux besoins fonctionnels de l’application cliente, tout en conservant la structure générale de l’API initiale fournie comme support de départ.
+
+## Évolutions réalisées
+
+Par rapport à l’API de départ, les principales évolutions concernent :
+
+* le fichier `.env`, utilisé pour la configuration sensible de l’accès à la base de données ;
+* le fichier `MyAccessBDD.php`, qui contient les traitements SQL spécifiques ajoutés ;
+* le script `mediatek86.sql`, qui crée la structure de la base, les contraintes, les triggers et les données de départ nécessaires au fonctionnement de l’application.
+
+Les fonctionnalités ajoutées ou adaptées permettent notamment :
+
+* la récupération des livres, DVD et revues avec leurs informations associées ;
+* la gestion des exemplaires liés aux documents ;
+* la création, modification et suppression de documents en transaction ;
+* la protection contre la suppression de documents encore liés à des exemplaires, commandes ou abonnements ;
+* la gestion des commandes de livres et de DVD ;
+* la gestion des abonnements aux revues ;
+* la détection des abonnements arrivant prochainement à expiration ;
+* l’authentification applicative des utilisateurs avec vérification d’un mot de passe hashé.
+
+## Authentification
+
+L’API utilise deux mécanismes d’authentification distincts.
+
+### Authentification d’accès à l’API
+
+L’accès aux endpoints de l’API est protégé par une authentification HTTP Basic Auth.
+
+Pour tester l’API avec Postman :
+
+* Type : `Basic Auth`
+* Username : `admin`
+* Password : `adminpwd`
+
+Cette authentification permet d’autoriser l’accès technique à l’API.
+
+### Authentification applicative
+
+L’application C# MediaTekDocuments possède également son propre mécanisme d’authentification.
+
+Lorsqu’un utilisateur se connecte depuis l’application, ses identifiants sont envoyés à l’API via l’endpoint `POST /authentification`.
+
+L’API vérifie alors :
+
+* le login de l’utilisateur ;
+* le mot de passe fourni ;
+* le hash stocké en base de données, avec `password_verify()` ;
+* le service auquel appartient l’utilisateur.
+
+Ce mécanisme permet à l’application C# d’adapter les droits d’accès selon le profil de l’utilisateur connecté.
+
+## Installation en local
+
+### Prérequis
+
+Installer les outils suivants :
+
+* WampServer ou équivalent ;
+* Composer ;
+* Postman pour tester les endpoints ;
+* NetBeans, Visual Studio Code ou un autre IDE pour consulter et modifier le code.
+
+### Installation du projet
+
+1. Télécharger le code de l’API.
+2. Dézipper le projet dans le dossier `www` de WampServer.
+3. Renommer le dossier en `rest_mediatekdocuments` si nécessaire.
+4. Ouvrir une fenêtre de commande dans le dossier du projet.
+5. Exécuter la commande suivante pour recréer le dossier `vendor` :
+
+```bash
+composer install
+```
+
+### Création de la base de données
+
+1. Ouvrir phpMyAdmin.
+2. Créer une base de données nommée `mediatek86`.
+3. Exécuter le script SQL fourni :
+
+```txt
+mediatek86.sql
+```
+
+Ce script crée notamment :
+
+* les tables ;
+* les contraintes d’intégrité ;
+* les triggers SQL ;
+* les données de départ.
+
+## Configuration
+
+La configuration de l’accès à la base de données se fait dans le fichier `.env`.
+
+Ce fichier contient les informations nécessaires à la connexion :
+
+* serveur de base de données ;
+* nom de la base ;
+* identifiant ;
+* mot de passe.
+
+Le fichier `.env` ne doit pas être versionné s’il contient des informations sensibles propres à un environnement local ou de production.
+
+## Exploitation de l’API
+
+Adresse locale de l’API :
+
+```txt
 http://localhost/rest_mediatekdocuments/
+```
 
-Voici les différentes possibilités de sollicitation de l'API, afin d'agir sur la BDD, en ajoutant des informations directement dans l'URL (visible) et éventuellement dans le body (invisible) suivant les besoins :
+L’API repose sur des endpoints REST permettant :
 
-## Récupérer un contenu (select)
+* de récupérer des données avec `GET` ;
+* d’insérer des données avec `POST` ;
+* de modifier des données avec `PUT` ;
+* de supprimer des données avec `DELETE`.
 
-Méthode HTTP : **GET**  
-`http://localhost/rest_mediatekdocuments/table/champs` (champs optionnel)
+La documentation détaillée des endpoints et des exemples d’utilisation est disponible ici :
+[Documentation de l’API](docs/API.md)
 
-- `table` doit être remplacé par un nom de table (caractères acceptés : alphanumériques et `_`)
-- `champs` (optionnel) doit être remplacé par la liste des champs (nom/valeur) qui serviront à la recherche (au format JSON)
+## Structure de la documentation
 
-## Insérer (insert)
+```txt
+docs/
+└── API.md
+```
 
-Méthode HTTP : **POST**  
-`http://localhost/rest_mediatekdocuments/table`
+Le fichier `docs/API.md` décrit :
 
-`table` doit être remplacé par un nom de table (caractères acceptés : alphanumériques et `_`)
+* le format général des requêtes ;
+* l’utilisation des méthodes HTTP ;
+* les endpoints spécifiques ajoutés ;
+* les exemples d’appels ;
+* les traitements SQL particuliers ;
+* les triggers utilisés par la base de données.
 
-Dans le body (Dans Postman, onglet "Body", cocher `x-www-form-urlencoded`), ajouter :
+## Projet associé
 
-- Key : `champs`
-- Value : liste des champs (nom/valeur) qui serviront à l'insertion (au format JSON)
+Cette API est utilisée par l’application C# MediaTekDocuments.
 
-## Modifier (update)
+Dépôt de l’application C# :
+https://github.com/patrickbrouhard/mediatekdocuments
 
-Méthode HTTP : **PUT**  
-`http://localhost/rest_mediatekdocuments/table/id` (id optionnel)
-
-- `table` doit être remplacé par un nom de table (caractères acceptés : alphanumériques et `_`)
-- `id` (optionnel) doit être remplacé par l'identifiant de la ligne à modifier (caractères acceptés : alphanumériques)
-
-Dans le body (Dans Postman, onglet "Body", cocher `x-www-form-urlencoded`), ajouter :
-
-- Key : `champs`
-- Value : liste des champs (nom/valeur) qui serviront à la modification (au format JSON)
-
-## Supprimer (delete)
-
-Méthode HTTP : **DELETE**  
-`http://localhost/rest_mediatekdocuments/table/champs` (champs optionnel)
-
-- `table` doit être remplacé par un nom de table (caractères acceptés : alphanumériques et `_`)
-- `champs` (optionnel) doit être remplacé par la liste des champs (nom/valeur) qui serviront déterminer les lignes à supprimer (au format JSON)
-
-# Les fonctionnalités ajoutées
-
-Dans `MyAccessBDD.php`, des traitements spécifiques ont été ajoutés (au-delà du CRUD générique) pour répondre aux besoins de l’application C# **MediaTekDocuments** :
-
-- **selectTableSimple** : récupère le contenu des tables simples `genre`, `public`, `rayon`, `etat` (triées par `libelle`) pour alimenter les listes/combos.
-- **selectAllLivres / selectAllDvd / selectAllRevues** : retourne les listes de livres/DVD/revues avec les informations “enrichies” (jointures avec `document`, `genre`, `public`, `rayon`) afin d’afficher des libellés plutôt que des identifiants.
-- **selectExemplairesDocument** (remplace l’ancien `selectExemplairesRevue`) : récupère les exemplaires d’un document à partir de son `id` (avec l’état associé).
-- **Gestion des documents (livre / dvd / revue) en transaction** :
-    - création avec **génération d’identifiant** suivant la convention Mediatek (préfixe `0` livre, `1` revue, `2` dvd),
-    - mise à jour en séparant les champs `document` et les champs spécifiques,
-    - suppression protégée (refus si des exemplaires/commandes/abonnements existent).
-- **Commandes de documents (`commandedocument`)** : requêtes dédiées pour lister les commandes (avec filtrage possible par type `livre`/`dvd`) et gérer l’ajout/la modification/la suppression avec cohérence entre les tables `commande` et `commandedocument`.
-- **Abonnements (`abonnement`)** :
-    - liste des abonnements (commandes de revues),
-    - création/suppression avec cohérence via la table `commande`,
-    - requête dédiée **abonnements expirant dans X jours**.
-- **Endpoint d’authentification applicative** : vérification d’un utilisateur (login/mot de passe hashé) via `password_verify` (utilisé par `POST /authentification`).
-
----

@@ -1,0 +1,1246 @@
+{
+  "info": {
+    "_postman_id": "57279ce0-55e0-44b7-a4db-c3b1303a0e9f",
+    "name": "Mediatek API - Tests cohérents avec l'application C#",
+    "description": "Collection de tests alignée sur les appels réellement effectués par Access.cs : GET filtrés et DELETE avec JSON dans l'URL, POST et PUT avec champs=<json> dans le body x-www-form-urlencoded.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "{{apiUsername}}",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "{{apiPassword}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost/rest_mediatekdocuments",
+      "type": "string"
+    },
+    {
+      "key": "apiUsername",
+      "value": "admin",
+      "type": "string"
+    },
+    {
+      "key": "apiPassword",
+      "value": "adminpwd",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Consultations utilisées par l'application",
+      "item": [
+        {
+          "name": "00.01 - Initialiser les variables + GET genres",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/genre"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now().toString();",
+                  "const shortNumber = Number(suffix.slice(-6));",
+                  "pm.collectionVariables.set('runSuffix', suffix);",
+                  "pm.collectionVariables.set('testPrefix', 'POSTMAN_E2E_' + suffix);",
+                  "pm.collectionVariables.unset('createdLivreId');",
+                  "pm.collectionVariables.unset('createdCommandeLivreId');",
+                  "pm.collectionVariables.unset('createdLivreExemplaireNumero');",
+                  "pm.collectionVariables.unset('createdDvdId');",
+                  "pm.collectionVariables.unset('createdRevueId');",
+                  "pm.collectionVariables.unset('createdAbonnementId');",
+                  "pm.collectionVariables.set('commandeLivreFilterJson', encodeURIComponent(JSON.stringify({ typemedia: 'livre' })));",
+                  "pm.collectionVariables.set('commandeDvdFilterJson', encodeURIComponent(JSON.stringify({ typemedia: 'dvd' })));",
+                  "pm.collectionVariables.set('authJson', JSON.stringify({ login: 'adm', password: 'test' }));",
+                  "pm.collectionVariables.set('livreTitle', 'POSTMAN_E2E_LIVRE_' + suffix);",
+                  "pm.collectionVariables.set('livreJson', JSON.stringify({ titre: pm.collectionVariables.get('livreTitle'), image: '', idRayon: 'LV001', idPublic: '00002', idGenre: '10006', ISBN: '9780000000000', auteur: 'Postman', collection: 'Tests API' }));",
+                  "pm.collectionVariables.set('livreUpdateJson', JSON.stringify({ titre: pm.collectionVariables.get('livreTitle') + '_MODIFIE', collection: 'Tests API modifies' }));",
+                  "pm.collectionVariables.set('dvdTitle', 'POSTMAN_E2E_DVD_' + suffix);",
+                  "pm.collectionVariables.set('dvdJson', JSON.stringify({ titre: pm.collectionVariables.get('dvdTitle'), image: '', idRayon: 'DF001', idPublic: '00003', idGenre: '10002', realisateur: 'Postman', duree: 120, synopsis: 'DVD créé par la collection de tests Postman.' }));",
+                  "pm.collectionVariables.set('dvdUpdateJson', JSON.stringify({ titre: pm.collectionVariables.get('dvdTitle') + '_MODIFIE', duree: 125 }));",
+                  "pm.collectionVariables.set('revueTitle', 'POSTMAN_E2E_REVUE_' + suffix);",
+                  "pm.collectionVariables.set('revueJson', JSON.stringify({ titre: pm.collectionVariables.get('revueTitle'), image: '', idRayon: 'PR002', idPublic: '00002', idGenre: '10016', periodicite: 'MS', delaiMiseADispo: 15 }));",
+                  "pm.collectionVariables.set('revueUpdateJson', JSON.stringify({ titre: pm.collectionVariables.get('revueTitle') + '_MODIFIE', periodicite: 'HB' }));",
+                  "pm.collectionVariables.set('testExemplaireNumero', String(900000 + (shortNumber % 99999)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.02 - GET rayons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/rayon"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.03 - GET publics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/public"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.04 - GET suivis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/suivi"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.05 - GET états d'exemplaires",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/etat"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.06 - GET livres",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/livre"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.07 - GET DVD",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/dvd"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.08 - GET revues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/revue"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.09 - GET commandes livres",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/commandedocument/{{commandeLivreFilterJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.10 - GET commandes DVD",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/commandedocument/{{commandeDvdFilterJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.11 - GET abonnements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/abonnement"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.12 - GET exemplaires document existant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/exemplaire/%7B%22id%22%3A%2200002%22%7D"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Authentification applicative",
+      "item": [
+        {
+          "name": "01.01 - POST authentification utilisateur",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/authentification",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{authJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('utilisateur authentifié ou résultat exploitable', function () { pm.expect(response).to.have.property('result'); });",
+                  "pm.test('le mot de passe n’est pas renvoyé', function () { if (response.result && typeof response.result === 'object') { pm.expect(response.result).to.not.have.property('pwd'); } });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Cycle livre + commande + exemplaire",
+      "item": [
+        {
+          "name": "02.01 - POST livre de test",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/livre",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{livreJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.02 - GET livres - capturer l'ID du livre créé",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/livre"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });",
+                  "const title = pm.collectionVariables.get('livreTitle');",
+                  "const found = response.result.find(x => x.titre === title);",
+                  "pm.test('livre créé retrouvé', function () { pm.expect(found, 'livre créé').to.exist; });",
+                  "if (found) {",
+                  "  pm.collectionVariables.set('createdLivreId', found.id);",
+                  "  pm.collectionVariables.set('createdLivreDeleteJson', encodeURIComponent(JSON.stringify({ id: found.id })));",
+                  "  pm.collectionVariables.set('createdLivreFilterJson', encodeURIComponent(JSON.stringify({ id: found.id })));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.03 - PUT livre créé",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/livre/{{createdLivreId}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{livreUpdateJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.04 - POST commande pour le livre créé",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/commandedocument",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{commandeLivreJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const idLivre = pm.collectionVariables.get('createdLivreId');",
+                  "if (!idLivre) { throw new Error('createdLivreId absent : exécuter la requête de capture du livre avant celle-ci.'); }",
+                  "pm.collectionVariables.set('commandeLivreJson', JSON.stringify({ dateCommande: '2026-04-10', montant: '32.00', nbExemplaire: '1', idLivreDvd: idLivre, idSuivi: '1' }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.05 - GET commandes livres - capturer l'ID de commande",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/commandedocument/{{commandeLivreFilterJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });",
+                  "const idLivre = pm.collectionVariables.get('createdLivreId');",
+                  "const matches = response.result.filter(x => x.idLivreDvd === idLivre);",
+                  "matches.sort((a, b) => String(b.id).localeCompare(String(a.id)));",
+                  "const found = matches[0];",
+                  "pm.test('commande de document créée retrouvée', function () { pm.expect(found, 'commande créée').to.exist; });",
+                  "if (found) {",
+                  "  pm.collectionVariables.set('createdCommandeLivreId', found.id);",
+                  "  pm.collectionVariables.set('createdCommandeLivreDeleteJson', encodeURIComponent(JSON.stringify({ id: found.id })));",
+                  "  pm.collectionVariables.set('commandeLivreUpdateJson', JSON.stringify({ dateCommande: '2026-04-12', montant: 50, idLivreDvd: idLivre, nbExemplaire: 1, idSuivi: 3 }));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.06 - PUT commande en livrée - déclencher création exemplaire",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/commandedocument/{{createdCommandeLivreId}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{commandeLivreUpdateJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.07 - GET exemplaires du livre créé - capturer numéro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/exemplaire/{{createdLivreFilterJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });",
+                  "const result = response.result || [];",
+                  "pm.test('au moins un exemplaire créé pour le livre', function () { pm.expect(result.length).to.be.above(0); });",
+                  "const latest = result.sort((a, b) => Number(b.numero) - Number(a.numero))[0];",
+                  "if (latest) {",
+                  "  pm.collectionVariables.set('createdLivreExemplaireNumero', String(latest.numero));",
+                  "  pm.collectionVariables.set('livreExemplaireUpdateJson', JSON.stringify({ id: pm.collectionVariables.get('createdLivreId'), numero: String(latest.numero), idEtat: '00002' }));",
+                  "  pm.collectionVariables.set('livreExemplaireDeleteJson', encodeURIComponent(JSON.stringify({ id: pm.collectionVariables.get('createdLivreId'), numero: String(latest.numero) })));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.08 - PUT exemplaire du livre créé",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/exemplaire/{{createdLivreId}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{livreExemplaireUpdateJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.09 - DELETE exemplaire du livre créé",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/exemplaire/{{livreExemplaireDeleteJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.10 - DELETE commande du livre créé",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/commandedocument/{{createdCommandeLivreDeleteJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02.11 - DELETE livre créé",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/livre/{{createdLivreDeleteJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Cycle DVD",
+      "item": [
+        {
+          "name": "03.01 - POST DVD de test",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/dvd",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{dvdJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.02 - GET DVD - capturer l'ID du DVD créé",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/dvd"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });",
+                  "const title = pm.collectionVariables.get('dvdTitle');",
+                  "const found = response.result.find(x => x.titre === title);",
+                  "pm.test('DVD créé retrouvé', function () { pm.expect(found, 'DVD créé').to.exist; });",
+                  "if (found) {",
+                  "  pm.collectionVariables.set('createdDvdId', found.id);",
+                  "  pm.collectionVariables.set('createdDvdDeleteJson', encodeURIComponent(JSON.stringify({ id: found.id })));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.03 - PUT DVD créé",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/dvd/{{createdDvdId}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{dvdUpdateJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03.04 - DELETE DVD créé",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/dvd/{{createdDvdDeleteJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Cycle revue + exemplaire + abonnement",
+      "item": [
+        {
+          "name": "04.01 - POST revue de test",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/revue",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{revueJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.02 - GET revues - capturer l'ID de la revue créée",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/revue"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });",
+                  "const title = pm.collectionVariables.get('revueTitle');",
+                  "const found = response.result.find(x => x.titre === title);",
+                  "pm.test('revue créée retrouvée', function () { pm.expect(found, 'revue créée').to.exist; });",
+                  "if (found) {",
+                  "  pm.collectionVariables.set('createdRevueId', found.id);",
+                  "  pm.collectionVariables.set('createdRevueFilterJson', encodeURIComponent(JSON.stringify({ id: found.id })));",
+                  "  pm.collectionVariables.set('createdRevueDeleteJson', encodeURIComponent(JSON.stringify({ id: found.id })));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.03 - PUT revue créée",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/revue/{{createdRevueId}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{revueUpdateJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.04 - POST exemplaire pour la revue créée",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/exemplaire",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{revueExemplaireJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const idRevue = pm.collectionVariables.get('createdRevueId');",
+                  "if (!idRevue) { throw new Error('createdRevueId absent : exécuter la requête de capture de la revue avant celle-ci.'); }",
+                  "pm.collectionVariables.set('revueExemplaireJson', JSON.stringify({ id: idRevue, numero: pm.collectionVariables.get('testExemplaireNumero'), dateAchat: '2026-04-10', photo: '', idEtat: '00001' }));",
+                  "pm.collectionVariables.set('revueExemplaireUpdateJson', JSON.stringify({ id: idRevue, numero: pm.collectionVariables.get('testExemplaireNumero'), idEtat: '00002' }));",
+                  "pm.collectionVariables.set('revueExemplaireDeleteJson', encodeURIComponent(JSON.stringify({ id: idRevue, numero: pm.collectionVariables.get('testExemplaireNumero') })));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.05 - GET exemplaires de la revue créée",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/exemplaire/{{createdRevueFilterJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });",
+                  "const numero = String(pm.collectionVariables.get('testExemplaireNumero'));",
+                  "const found = response.result.find(x => String(x.numero) === numero);",
+                  "pm.test('exemplaire de revue créé retrouvé', function () { pm.expect(found, 'exemplaire créé').to.exist; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.06 - PUT exemplaire de la revue créée",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/exemplaire/{{createdRevueId}}",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{revueExemplaireUpdateJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.07 - DELETE exemplaire de la revue créée",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/exemplaire/{{revueExemplaireDeleteJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.08 - POST abonnement pour la revue créée",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/abonnement",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "champs",
+                  "value": "{{abonnementJson}}",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const idRevue = pm.collectionVariables.get('createdRevueId');",
+                  "if (!idRevue) { throw new Error('createdRevueId absent : exécuter la requête de capture de la revue avant celle-ci.'); }",
+                  "pm.collectionVariables.set('abonnementJson', JSON.stringify({ dateCommande: '2026-04-10', montant: '32.00', dateFinAbonnement: '2030-04-10', idRevue: idRevue }));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.09 - GET abonnements - capturer l'ID de l'abonnement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/abonnement"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });",
+                  "const idRevue = pm.collectionVariables.get('createdRevueId');",
+                  "const matches = response.result.filter(x => x.idRevue === idRevue);",
+                  "matches.sort((a, b) => String(b.id).localeCompare(String(a.id)));",
+                  "const found = matches[0];",
+                  "pm.test('abonnement créé retrouvé', function () { pm.expect(found, 'abonnement créé').to.exist; });",
+                  "if (found) {",
+                  "  pm.collectionVariables.set('createdAbonnementId', found.id);",
+                  "  pm.collectionVariables.set('createdAbonnementDeleteJson', encodeURIComponent(JSON.stringify({ id: found.id })));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.10 - GET abonnements expirant dans 3650 jours",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/abonnements_expirant_dans/{{alertesAbonnementsFilterJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('alertesAbonnementsFilterJson', encodeURIComponent(JSON.stringify({ jours: 3650 })));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result est un tableau', function () { pm.expect(response.result).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.11 - DELETE abonnement créé",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/abonnement/{{createdAbonnementDeleteJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04.12 - DELETE revue créée",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/revue/{{createdRevueDeleteJson}}"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('API code 200', function () { pm.expect(response.code).to.eql(200); });",
+                  "pm.test('result > 0', function () { pm.expect(Number(response.result)).to.be.above(0); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
