@@ -1,611 +1,635 @@
-# API REST MediatekDocuments (PHP)
+# Documentation de l’API REST MediaTekDocuments
 
-Cette API utilise un **point d’entrée unique** (`src/index.php`) et un **routage via `.htaccess`** pour exposer des URLs “propres” (ex: `/livre`).
+## URL de l’API
 
-**URL de base (locale) :**
+Adresse locale de l’API :
 
-- `http://localhost/rest_mediatekdocuments/`
+```txt
+http://localhost/rest_mediatekdocuments/
+```
+
+Selon la configuration de l’application C#, l’API peut être appelée :
+
+* en local, pendant le développement ;
+* en ligne, lorsque l’application est compilée en mode release.
+
+L’URL utilisée par l’application C# est définie dans son fichier de configuration.
+
+## Objectif de cette documentation
+
+Cette documentation décrit principalement la façon dont l’application C# **MediaTekDocuments** communique avec l’API REST PHP.
+
+Certaines variantes peuvent fonctionner, notamment en transmettant `champs` dans le body pour des requêtes `GET` ou `DELETE`. Cependant, la forme mise en avant ici est celle utilisée par l’application C#, car elle correspond au fonctionnement réel du client applicatif.
+
+## Authentification
+
+L’API utilise deux mécanismes d’authentification distincts.
+
+### Authentification d’accès à l’API
+
+L’accès technique aux endpoints de l’API est protégé par une authentification HTTP Basic Auth.
+
+Dans Postman :
+
+* aller dans l’onglet `Authorization` ;
+* choisir le type `Basic Auth` ;
+* renseigner les identifiants d’accès à l’API.
+
+Identifiants utilisés pour les tests :
+
+```txt
+Username : admin
+Password : adminpwd
+```
+
+Cette authentification permet d’autoriser l’accès à l’API elle-même.
+
+### Authentification applicative
+
+L’application C# MediaTekDocuments possède également son propre mécanisme d’authentification.
+
+Lorsqu’un utilisateur se connecte depuis l’application, ses identifiants sont envoyés à l’API via l’endpoint :
+
+```http
+POST /authentification
+```
+
+L’API vérifie alors :
+
+* le login de l’utilisateur ;
+* le mot de passe fourni ;
+* le hash stocké en base de données, avec `password_verify()` ;
+* le service auquel appartient l’utilisateur.
+
+Ce mécanisme permet à l’application C# d’adapter les droits d’accès selon le profil de l’utilisateur connecté.
+
+La requête utilise la méthode `POST` car les identifiants sont transmis dans le body de la requête, et non directement dans l’URL. Cela évite d’exposer le login et le mot de passe dans l’historique, les logs ou les traces réseau visibles au niveau de l’URL.
+
+## Principe général des requêtes
+
+L’API repose sur des endpoints REST construits autour :
+
+* d’une méthode HTTP ;
+* d’un nom de ressource ;
+* éventuellement d’un identifiant ;
+* éventuellement d’un objet JSON contenant les paramètres.
+
+Les principales méthodes utilisées sont :
+
+* `GET` pour récupérer des données ;
+* `POST` pour insérer des données ;
+* `PUT` pour modifier des données ;
+* `DELETE` pour supprimer des données.
+
+## Format général utilisé par l’application C#
+
+L’application C# utilise principalement les formats suivants.
+
+### Récupération simple
+
+Pour récupérer toutes les données d’une ressource :
+
+```http
+GET /table
+```
+
+Exemple :
+
+```http
+GET /livre
+```
+
+### Récupération filtrée
+
+Pour récupérer des données avec paramètres, l’application C# transmet un objet JSON directement dans l’URL :
+
+```http
+GET /table/{"champ":"valeur"}
+```
+
+Exemple :
+
+```http
+GET /exemplaire/{"id":"00002"}
+```
+
+En pratique, le JSON peut être encodé dans l’URL.
+
+Exemple équivalent encodé :
+
+```http
+GET /exemplaire/%7B%22id%22%3A%2200002%22%7D
+```
+
+### Insertion
+
+Pour insérer des données, l’application C# envoie une requête `POST` avec les données dans le body, sous la forme `x-www-form-urlencoded`.
+
+```http
+POST /table
+```
+
+Body :
+
+```txt
+champs={"champ":"valeur"}
+```
+
+### Modification
+
+Pour modifier une donnée existante, l’identifiant est placé dans l’URL et les champs à modifier sont envoyés dans le body.
+
+```http
+PUT /table/id
+```
+
+Body :
+
+```txt
+champs={"champ":"nouvelle valeur"}
+```
+
+### Suppression
+
+Pour supprimer une donnée, l’application C# transmet les critères de suppression sous forme de JSON dans l’URL.
+
+```http
+DELETE /table/{"id":"valeur"}
+```
+
+En pratique, le JSON peut être encodé dans l’URL.
+
+Exemple équivalent encodé :
+
+```http
+DELETE /livre/%7B%22id%22%3A%2200030%22%7D
+```
+## Endpoints de consultation
+
+### Récupérer les livres
+
+```http
+GET http://localhost/rest_mediatekdocuments/livre
+```
+
+Retourne la liste des livres avec les informations associées issues des tables liées.
+
+### Récupérer les DVD
+
+```http
+GET http://localhost/rest_mediatekdocuments/dvd
+```
+
+Retourne la liste des DVD avec les informations associées issues des tables liées.
+
+### Récupérer les revues
+
+```http
+GET http://localhost/rest_mediatekdocuments/revue
+```
+
+Retourne la liste des revues avec les informations associées issues des tables liées.
+
+### Récupérer les genres
+
+```http
+GET http://localhost/rest_mediatekdocuments/genre
+```
+
+Retourne les genres disponibles.
+
+### Récupérer les publics
+
+```http
+GET http://localhost/rest_mediatekdocuments/public
+```
+
+Retourne les publics disponibles.
+
+### Récupérer les rayons
+
+```http
+GET http://localhost/rest_mediatekdocuments/rayon
+```
+
+Retourne les rayons disponibles.
+
+### Récupérer les états d’exemplaires
+
+```http
+GET http://localhost/rest_mediatekdocuments/etat
+```
+
+Retourne les états disponibles pour les exemplaires.
+
+### Récupérer les états de suivi des commandes
+
+```http
+GET http://localhost/rest_mediatekdocuments/suivi
+```
+
+Retourne les états de suivi utilisés pour les commandes.
+
+## Endpoints liés aux exemplaires
+
+### Récupérer les exemplaires d’un document
+
+```http
+GET http://localhost/rest_mediatekdocuments/exemplaire/{"id":"00002"}
+```
+
+Version encodée :
+
+```http
+GET http://localhost/rest_mediatekdocuments/exemplaire/%7B%22id%22%3A%2200002%22%7D
+```
+
+Cette requête retourne les exemplaires associés au document dont l’identifiant est fourni.
+
+### Modifier un exemplaire
+
+```http
+PUT http://localhost/rest_mediatekdocuments/exemplaire/00002
+```
+
+Body `x-www-form-urlencoded` :
+
+```txt
+champs={"id":"00002","numero":"1","idEtat":"00002"}
+```
+
+La modification d’un exemplaire se fait à partir de l’identifiant du document et du numéro d’exemplaire.
+
+### Supprimer un exemplaire
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/exemplaire/{"id":"00002","numero":"1"}
+```
+
+Version encodée :
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/exemplaire/%7B%22id%22%3A%2200002%22%2C%22numero%22%3A%221%22%7D
+```
+
+## Endpoints liés aux documents
+
+Les documents sont répartis entre une table commune `document` et des tables spécialisées :
+
+* `livre` ;
+* `dvd` ;
+* `revue`.
+
+Pour les livres et les DVD, une table intermédiaire `livres_dvd` est également utilisée.
+
+### Ajouter un livre
+
+```http
+POST http://localhost/rest_mediatekdocuments/livre
+```
+
+Body `x-www-form-urlencoded` :
+
+```txt
+champs={"titre":"Test livre","idRayon":"LV001","idPublic":"00002","idGenre":"10006","ISBN":"123456789","auteur":"Moi","collection":"Test"}
+```
+
+### Modifier un livre
+
+```http
+PUT http://localhost/rest_mediatekdocuments/livre/00027
+```
+
+Body `x-www-form-urlencoded` :
+
+```txt
+champs={"titre":"Test livre modifié","collection":"Nouvelle collection"}
+```
+
+### Supprimer un livre
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/livre/{"id":"00030"}
+```
+
+Version encodée :
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/livre/%7B%22id%22%3A%2200030%22%7D
+```
+
+### Ajouter un DVD
+
+```http
+POST http://localhost/rest_mediatekdocuments/dvd
+```
+
+Body `x-www-form-urlencoded` :
+
+```txt
+champs={"titre":"Test DVD","idRayon":"DV001","idPublic":"00002","idGenre":"10006","realisateur":"Réalisateur test","duree":"120","synopsis":"Synopsis de test"}
+```
+
+### Modifier un DVD
+
+```http
+PUT http://localhost/rest_mediatekdocuments/dvd/20001
+```
+
+Body `x-www-form-urlencoded` :
+
+```txt
+champs={"titre":"Titre DVD modifié","duree":"130"}
+```
+
+### Supprimer un DVD
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/dvd/{"id":"20001"}
+```
+
+Version encodée :
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/dvd/%7B%22id%22%3A%2220001%22%7D
+```
+
+### Ajouter une revue
+
+```http
+POST http://localhost/rest_mediatekdocuments/revue
+```
+
+Body `x-www-form-urlencoded` :
+
+```txt
+champs={"titre":"Test revue","idRayon":"PR001","idPublic":"00002","idGenre":"10006","periodicite":"mensuel","delaiMiseADispo":"15"}
+```
+
+### Modifier une revue
+
+```http
+PUT http://localhost/rest_mediatekdocuments/revue/10001
+```
+
+Body `x-www-form-urlencoded` :
+
+```txt
+champs={"titre":"Titre revue modifié","periodicite":"hebdomadaire"}
+```
+
+### Supprimer une revue
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/revue/{"id":"10001"}
+```
+
+Version encodée :
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/revue/%7B%22id%22%3A%2210001%22%7D
+```
+
+## Génération des identifiants de documents
+
+Lors de la création d’un document, l’API génère automatiquement un identifiant selon la convention MediaTek :
+
+* les livres commencent par `0` ;
+* les revues commencent par `1` ;
+* les DVD commencent par `2`.
 
 Exemples :
-- `http://localhost/rest_mediatekdocuments/livre`
-- `http://localhost/rest_mediatekdocuments/genre`
 
----
+* `00001` pour un livre ;
+* `10001` pour une revue ;
+* `20001` pour un DVD.
 
-## Table des matières
+Cette génération est réalisée côté API.
 
-- [1. URL de base et routage](#1-url-de-base-et-routage)
-    - [1.1 Point d’entrée réel (interne)](#11-point-dentrée-réel-interne)
-    - [1.2 Routes exposées par .htaccess](#12-routes-exposées-par-htaccess)
-- [2. Authentification](#2-authentification)
-    - [2.1 Aucun contrôle d’auth (par défaut)](#21-aucun-contrôle-dauth-par-défaut)
-    - [2.2 HTTP Basic Auth](#22-http-basic-auth)
-    - [2.3 Authentification applicative (endpoint)](#23-authentification-applicative-endpoint)
-- [3. Format des requêtes et réponses](#3-format-des-requêtes-et-réponses)
-    - [3.1 Paramètres manipulés par l’API](#31-paramètres-manipulés-par-lapi)
-    - [3.2 Le paramètre `champs` (JSON)](#32-le-paramètre-champs-json)
-    - [3.3 Format des réponses](#33-format-des-réponses)
-- [4. Endpoints (GET)](#4-endpoints-get)
-- [5. Endpoints (POST)](#5-endpoints-post)
-- [6. Endpoints (PUT)](#6-endpoints-put)
-- [7. Endpoints (DELETE)](#7-endpoints-delete)
-- [8. Conseils Postman / curl](#8-conseils-postman--curl)
-- [9. Cheatsheet](#9-cheatsheet)
+## Suppression protégée des documents
 
----
+Avant de supprimer un document, l’API vérifie s’il est encore associé à d’autres données.
 
-## 1) URL de base et routage
+La suppression est refusée si le document est lié :
 
-### 1.1 Point d’entrée réel (interne)
+* à des exemplaires ;
+* à des commandes pour les livres et DVD ;
+* à des abonnements pour les revues.
 
-Techniquement, tout est traité par :
+Cette vérification évite de supprimer un document encore utilisé par l’application.
 
-- `src/index.php`
+## Endpoints liés aux commandes de documents
 
-Ce fichier lit les variables :
-- `table` (obligatoire)
-- `id` (selon cas, surtout pour PUT)
-- `champs` (JSON selon cas)
+Les commandes de documents concernent les livres et les DVD.
 
-### 1.2 Routes exposées par .htaccess
+### Récupérer les commandes de livres
 
-Le fichier `.htaccess` (à la racine) réécrit les URLs vers `src/index.php` :
-
-- `/` → `src/index.php`
-- `GET /{table}` → `src/index.php?table={table}`
-- `GET /{table}/{json}` → `src/index.php?table={table}&champs={json}`
-- `POST /{table}` → `src/index.php?table={table}`
-- `PUT /{table}` → `src/index.php?table={table}`
-- `PUT /{table}/{id}` → `src/index.php?table={table}&id={id}`
-- `DELETE /{table}` → `src/index.php?table={table}`
-- `DELETE /{table}/{json}` → `src/index.php?table={table}&champs={json}`
-
-> `{table}` accepte : lettres, chiffres et `_` (regex `.htaccess` : `[a-zA-Z0-9_]+`).
-
-Donc, en local, on appelle directement :
-- `http://localhost/rest_mediatekdocuments/livre`
-  plutôt que :
-- `http://localhost/rest_mediatekdocuments/src/index.php?table=livre`
-
----
-
-## 2) Authentification
-
-L’API supporte 2 niveaux possibles :
-
-1) **Authentification HTTP Basic** (contrôle d’accès à l’API elle-même)
-2) **Authentification applicative** via un endpoint (`POST /authentification`) qui vérifie un utilisateur en base
-
-### 2.1 Aucun contrôle d’auth (par défaut)
-Si `AUTHENTIFICATION` (dans `.env`) est vide : aucune authentification n’est requise.
-
-### 2.2 HTTP Basic Auth
-Si `AUTHENTIFICATION=basic`, l’API attend une authentification HTTP Basic :
-
-- utilisateur attendu : `AUTH_USER`
-- mot de passe attendu : `AUTH_PW`
-
-Exemple curl :
-```bash
-curl -u "monuser:monmdp" \
-  "http://localhost/rest_mediatekdocuments/livre"
+```http
+GET http://localhost/rest_mediatekdocuments/commandedocument/{"typemedia":"livre"}
 ```
 
-Si l’auth échoue : réponse JSON avec `code=401`.
+Version encodée :
 
-### 2.3 Authentification applicative (endpoint)
-L’API propose aussi un endpoint pour vérifier un login/mot de passe stocké en BDD :
-
-- `POST /authentification` avec `champs.login` + `champs.password`
-
-Voir la section [5. Endpoints (POST)](#5-endpoints-post).
-
----
-
-## 3) Format des requêtes et réponses
-
-### 3.1 Paramètres manipulés par l’API
-
-L’API récupère les données depuis :
-- la query string (`$_GET`)
-- les champs POST (`$_POST`)
-- le body brut (`php://input`) interprété comme `x-www-form-urlencoded` (`parse_str`)
-
-Paramètres côté code :
-- `table` (**obligatoire**) : ressource ciblée
-- `id` (optionnel) : identifiant, utilisé notamment pour `PUT /{table}/{id}`
-- `champs` (optionnel) : données au format JSON (voir ci-dessous)
-
-Si `table` est absent/vide : HTTP 404 avec :
-```json
-{"error":"Aucune ressource demandée"}
+```http
+GET http://localhost/rest_mediatekdocuments/commandedocument/%7B%22typemedia%22%3A%22livre%22%7D
 ```
 
-### 3.2 Le paramètre `champs` (JSON)
+### Récupérer les commandes de DVD
 
-`champs` est un **objet JSON sérialisé en chaîne**, puis décodé côté serveur.
-
-Deux façons “pratiques” de l’envoyer :
-
-#### A) Dans le body (recommandé)
-En `POST/PUT/DELETE`, en `x-www-form-urlencoded` :
-
-```bash
-curl -X POST \
-  -d 'champs={"titre":"Mon livre","idRayon":"R1","idPublic":"P1","idGenre":"G1"}' \
-  "http://localhost/rest_mediatekdocuments/livre"
+```http
+GET http://localhost/rest_mediatekdocuments/commandedocument/{"typemedia":"dvd"}
 ```
 
-#### B) Dans l’URL (possible, surtout en GET/DELETE)
-Le `.htaccess` autorise :
-- `GET /{table}/{json}`
-- `DELETE /{table}/{json}`
+Version encodée :
 
-Exemple (GET) :
-```bash
-curl "http://localhost/rest_mediatekdocuments/exemplaire/%7B%22id%22%3A%221001%22%7D"
+```http
+GET http://localhost/rest_mediatekdocuments/commandedocument/%7B%22typemedia%22%3A%22dvd%22%7D
 ```
 
-> Important : si on met le JSON dans l’URL, il faut l’encoder (URL-encoding), sinon ça casse facilement.
+### Ajouter une commande de document
 
-### 3.3 Format des réponses
-
-Toutes les réponses sont JSON :
-
-```json
-{
-  "code": 200,
-  "message": "OK",
-  "result": ...
-}
+```http
+POST http://localhost/rest_mediatekdocuments/commandedocument
 ```
 
-Comportements :
-- `code=200` si résultat non `null`
-- `code=400` si requête invalide (résultat `null`)
-- `code=401` si authentification incorrecte
-- `code=500` en cas d’erreur serveur au démarrage
+Body `x-www-form-urlencoded` :
 
----
-
-# 4) Endpoints (GET)
-
-## GET /livre
-Retourne la liste des livres (avec jointures document + genre/public/rayon).
-
-```bash
-curl "http://localhost/rest_mediatekdocuments/livre"
+```txt
+champs={"dateCommande":"2026-04-10","montant":"32.00","nbExemplaire":"1","idLivreDvd":"00001","idSuivi":"1"}
 ```
 
----
+### Modifier une commande de document
 
-## GET /dvd
-Retourne la liste des DVD.
-
-```bash
-curl "http://localhost/rest_mediatekdocuments/dvd"
+```http
+PUT http://localhost/rest_mediatekdocuments/commandedocument/00002
 ```
 
----
+Body `x-www-form-urlencoded` :
 
-## GET /revue
-Retourne la liste des revues.
-
-```bash
-curl "http://localhost/rest_mediatekdocuments/revue"
+```txt
+champs={"dateCommande":"2026-04-12","montant":50,"idLivreDvd":"00002","nbExemplaire":1,"idSuivi":1}
 ```
 
----
+### Supprimer une commande de document
 
-## GET /exemplaire/{champs_json}
-Retourne les exemplaires pour un document (en pratique une revue), avec :
-
-- requis : `champs.id`
-
-Exemple (JSON dans l’URL) :
-```bash
-curl "http://localhost/rest_mediatekdocuments/exemplaire/%7B%22id%22%3A%221001%22%7D"
+```http
+DELETE http://localhost/rest_mediatekdocuments/commandedocument/{"id":"00001"}
 ```
 
-Alternative (si on préfère la querystring) :
-```bash
-curl "http://localhost/rest_mediatekdocuments/src/index.php?table=exemplaire&champs=%7B%22id%22%3A%221001%22%7D"
+Version encodée :
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/commandedocument/%7B%22id%22%3A%2200001%22%7D
 ```
 
----
+La suppression est effectuée à partir de la table `commande`. La suppression liée dans `commandedocument` est gérée par trigger SQL.
 
-## GET /genre
-## GET /public
-## GET /rayon
-## GET /etat
-Retourne les lignes de tables “simples” (id + libellé), triées par libellé.
+## Endpoints liés aux abonnements
 
-Exemple :
-```bash
-curl "http://localhost/rest_mediatekdocuments/genre"
+Les abonnements concernent les commandes liées aux revues.
+
+### Récupérer les abonnements
+
+```http
+GET http://localhost/rest_mediatekdocuments/abonnement
 ```
 
----
+### Ajouter un abonnement
 
-## GET /commandedocument  (avec champs dans querystring)
-Le `.htaccess` ne prévoit pas de route `GET /commandedocument/{id}`, mais prévoit `GET /{table}/{json}`.
-
-- attendu : `champs.typemedia` vaut `"livre"` ou `"dvd"` (sinon pas de filtre)
-
-Exemple (JSON dans l’URL) :
-```bash
-curl "http://localhost/rest_mediatekdocuments/commandedocument/%7B%22typemedia%22%3A%22livre%22%7D"
+```http
+POST http://localhost/rest_mediatekdocuments/abonnement
 ```
 
----
+Body `x-www-form-urlencoded` :
 
-## GET /abonnement
-Retourne les commandes associées aux revues.
-
-```bash
-curl "http://localhost/rest_mediatekdocuments/abonnement"
+```txt
+champs={"dateCommande":"2026-04-10","montant":"32.00","dateFinAbonnement":"2027-04-10","idRevue":"10001"}
 ```
 
----
+La date de fin d’abonnement doit être postérieure ou égale à la date de commande.
 
-## GET /abonnements_expirant_dans (option: /abonnements_expirant_dans/{json})
-Retourne les abonnements dont la fin intervient dans les X prochains jours.
+### Supprimer un abonnement
 
-- optionnel : `champs.jours` (défaut 30)
-
-Exemple (défaut) :
-```bash
-curl "http://localhost/rest_mediatekdocuments/abonnements_expirant_dans"
+```http
+DELETE http://localhost/rest_mediatekdocuments/abonnement/{"id":"00015"}
 ```
 
-Exemple (10 jours) :
-```bash
-curl "http://localhost/rest_mediatekdocuments/abonnements_expirant_dans/%7B%22jours%22%3A10%7D"
+Version encodée :
+
+```http
+DELETE http://localhost/rest_mediatekdocuments/abonnement/%7B%22id%22%3A%2200015%22%7D
 ```
 
----
+La suppression est effectuée à partir de la table `commande`. La suppression liée dans `abonnement` est gérée par trigger SQL.
 
-## GET /{table} (cas général)
-Si `{table}` n’est pas un cas spécial, l’API fait :
-- sans `champs` : `SELECT * FROM table`
-- avec `champs` : filtre `WHERE ... AND ...`
+### Récupérer les abonnements arrivant à expiration
 
-Exemple :
-```bash
-curl "http://localhost/rest_mediatekdocuments/utilisateur/%7B%22login%22%3A%22admin%22%7D"
+```http
+GET http://localhost/rest_mediatekdocuments/abonnements_expirant_dans/{"jours":30}
 ```
 
----
+Version encodée :
 
-# 5) Endpoints (POST)
-
-## POST /authentification
-Endpoint “spécial” (ce n’est pas un INSERT) : vérifie un utilisateur.
-
-- requis : `champs.login`, `champs.password`
-
-Exemple :
-```bash
-curl -X POST \
-  -d 'champs={"login":"admin","password":"secret"}' \
-  "http://localhost/rest_mediatekdocuments/authentification"
+```http
+GET http://localhost/rest_mediatekdocuments/abonnements_expirant_dans/%7B%22jours%22%3A30%7D
 ```
 
-Retour :
-- si OK : infos utilisateur (sans mot de passe)
-- si KO : résultat vide ou requête invalide selon le cas
+Cet endpoint retourne les abonnements dont la date de fin est comprise entre la date du jour et la date du jour plus le nombre de jours indiqué.
 
----
+## Endpoint d’authentification applicative
 
-## POST /livre
-Crée un livre (ID auto, préfixe `0`).
+L’authentification applicative est utilisée par l’application C# MediaTekDocuments.
 
-- requis (minimum) : `idGenre`, `idPublic`, `idRayon`
-- champs possibles : `titre`, `image`, `ISBN`, `auteur`, `collection`, …
+Elle permet de vérifier les identifiants d’un utilisateur stocké en base de données.
 
-Exemple :
-```bash
-curl -X POST \
-  -d 'champs={"titre":"Mon livre","idRayon":"R1","idPublic":"P1","idGenre":"G1","auteur":"Moi"}' \
-  "http://localhost/rest_mediatekdocuments/livre"
+```http
+POST http://localhost/rest_mediatekdocuments/authentification
 ```
 
----
+Body `x-www-form-urlencoded` :
 
-## POST /dvd
-Crée un DVD (ID auto, préfixe `2`).
-
-- requis (minimum) : `idGenre`, `idPublic`, `idRayon`
-
-Exemple :
-```bash
-curl -X POST \
-  -d 'champs={"titre":"Mon film","idRayon":"R1","idPublic":"P1","idGenre":"G1","duree":120}' \
-  "http://localhost/rest_mediatekdocuments/dvd"
+```txt
+champs={"login":"login_utilisateur","password":"mot_de_passe"}
 ```
 
----
+Exemple de test :
 
-## POST /revue
-Crée une revue (ID auto, préfixe `1`).
-
-- requis (minimum) : `idGenre`, `idPublic`, `idRayon`
-
-Exemple :
-```bash
-curl -X POST \
-  -d 'champs={"titre":"Ma revue","idRayon":"R1","idPublic":"P1","idGenre":"G1","periodicite":"Mensuel"}' \
-  "http://localhost/rest_mediatekdocuments/revue"
+```txt
+champs={"login":"adm","password":"test"}
 ```
 
----
+Le mot de passe fourni est comparé au hash stocké en base de données avec `password_verify()`.
 
-## POST /commandedocument
-Crée une commande de document (livre/dvd). ID auto sur 5 chiffres (`00001`, …).
+En cas de succès, l’API retourne les informations de l’utilisateur, sans renvoyer le mot de passe, même hashé.
 
-- requis : `dateCommande`, `montant`, `nbExemplaire`, `idLivreDvd`, `idSuivi`
+## Codes de suivi des commandes
 
-Exemple :
-```bash
-curl -X POST \
-  -d 'champs={"dateCommande":"2026-04-26","montant":42.5,"nbExemplaire":2,"idLivreDvd":"0001","idSuivi":"1"}' \
-  "http://localhost/rest_mediatekdocuments/commandedocument"
+La table `suivi` contient les états possibles d’une commande :
+
+* `1` : en cours ;
+* `2` : relancée ;
+* `3` : livrée ;
+* `4` : réglée.
+
+Le passage d’une commande de document à l’état `livrée` déclenche la création automatique des exemplaires par trigger SQL.
+
+## Triggers SQL
+
+Le script `mediatek86.sql` contient plusieurs triggers SQL.
+
+### Suppression liée aux commandes
+
+Lorsqu’une ligne de la table `commande` est supprimée, des triggers suppriment automatiquement les données liées :
+
+* dans `commandedocument` pour les commandes de livres et DVD ;
+* dans `abonnement` pour les commandes de revues.
+
+### Création automatique des exemplaires
+
+Lorsqu’une commande de document passe à l’état `livrée`, un trigger crée automatiquement les exemplaires correspondants dans la table `exemplaire`.
+
+Le nombre d’exemplaires créés dépend de la valeur du champ `nbExemplaire`.
+
+## Transactions
+
+Les traitements complexes sont réalisés dans des transactions afin d’éviter les incohérences entre plusieurs tables.
+
+C’est notamment le cas pour :
+
+* la création d’un livre ;
+* la création d’un DVD ;
+* la création d’une revue ;
+* la modification d’un document ;
+* la suppression d’un document ;
+* la création d’une commande ;
+* la modification d’une commande ;
+* la création d’un abonnement.
+
+En cas d’échec d’une opération dans une transaction, les modifications sont annulées.
+
+## Synthèse des formats utilisés
+
+| Action                       |  Méthode | Format principal utilisé par l’application C#         |
+| ---------------------------- | -------: | ----------------------------------------------------- |
+| Récupération simple          |    `GET` | `/table`                                              |
+| Récupération filtrée         |    `GET` | `/table/{json}`                                       |
+| Insertion                    |   `POST` | `/table` avec `champs=<json>` dans le body            |
+| Modification                 |    `PUT` | `/table/id` avec `champs=<json>` dans le body         |
+| Suppression                  | `DELETE` | `/table/{json}`                                       |
+| Authentification applicative |   `POST` | `/authentification` avec `champs=<json>` dans le body |
+
+## Remarque finale
+
+Les exemples avec JSON directement dans l’URL sont présentés pour rester lisibles. En pratique, le client C# peut encoder ces valeurs avant l’envoi de la requête, notamment pour les suppressions.
+
+Exemple lisible :
+
+```http
+DELETE /livre/{"id":"00030"}
 ```
 
----
+Exemple encodé équivalent :
 
-## POST /abonnement
-Crée un abonnement (commande de revue). ID auto sur 5 chiffres.
-
-- requis : `dateCommande`, `montant`, `dateFinAbonnement`, `idRevue`
-- contrainte : `dateFinAbonnement >= dateCommande`
-
-Exemple :
-```bash
-curl -X POST \
-  -d 'champs={"dateCommande":"2026-04-26","montant":90,"dateFinAbonnement":"2027-04-26","idRevue":"1001"}' \
-  "http://localhost/rest_mediatekdocuments/abonnement"
+```http
+DELETE /livre/%7B%22id%22%3A%2200030%22%7D
 ```
-
----
-
-## POST /{table} (cas général)
-Si `{table}` n’est pas spécial, l’API fait un INSERT direct avec les clés de `champs`.
-
-Exemple :
-```bash
-curl -X POST \
-  -d 'champs={"id":"S9","libelle":"Nouveau service"}' \
-  "http://localhost/rest_mediatekdocuments/service"
-```
-
----
-
-# 6) Endpoints (PUT)
-
-Rappels routage `.htaccess` :
-
-- `PUT /{table}` → `table={table}` (l’`id` peut aussi être dans `champs` selon le traitement)
-- `PUT /{table}/{id}` → `table={table}&id={id}`
-
-## PUT /livre/{id}
-Met à jour un livre (met à jour `document` + `livre` si champs spécifiques présents).
-
-Exemple :
-```bash
-curl -X PUT \
-  -d 'champs={"titre":"Nouveau titre","auteur":"Autre auteur"}' \
-  "http://localhost/rest_mediatekdocuments/livre/0001"
-```
-
----
-
-## PUT /dvd/{id}
-Exemple :
-```bash
-curl -X PUT \
-  -d 'champs={"synopsis":"Résumé mis à jour"}' \
-  "http://localhost/rest_mediatekdocuments/dvd/2001"
-```
-
----
-
-## PUT /revue/{id}
-Exemple :
-```bash
-curl -X PUT \
-  -d 'champs={"periodicite":"Hebdomadaire"}' \
-  "http://localhost/rest_mediatekdocuments/revue/1001"
-```
-
----
-
-## PUT /exemplaire
-Met à jour l’état d’un exemplaire.
-
-- requis : `champs.id`, `champs.numero`, `champs.idEtat`
-
-Exemple :
-```bash
-curl -X PUT \
-  -d 'champs={"id":"1001","numero":"00001","idEtat":"2"}' \
-  "http://localhost/rest_mediatekdocuments/exemplaire"
-```
-
----
-
-## PUT /commandedocument/{id}
-Met à jour une commande document.
-
-Champs possibles :
-- pour `commande` : `dateCommande`, `montant`
-- pour `commandedocument` : `nbExemplaire`, `idLivreDvd`, `idSuivi`
-
-Exemple :
-```bash
-curl -X PUT \
-  -d 'champs={"idSuivi":"3"}' \
-  "http://localhost/rest_mediatekdocuments/commandedocument/00012"
-```
-
----
-
-## PUT /{table}/{id} (cas général)
-Exemple :
-```bash
-curl -X PUT \
-  -d 'champs={"libelle":"Roman"}' \
-  "http://localhost/rest_mediatekdocuments/genre/G1"
-```
-
----
-
-# 7) Endpoints (DELETE)
-
-Rappels routage `.htaccess` :
-
-- `DELETE /{table}` → `table={table}`
-- `DELETE /{table}/{json}` → `table={table}&champs={json}`
-
-> Important : le code attend l’identifiant **dans `champs.id`** (pas dans `{id}`) pour la plupart des suppressions.
-
-## DELETE /livre  (avec champs dans body)
-- requis : `champs.id`
-- suppression protégée : refuse si exemplaires/commandes existent
-
-Exemple :
-```bash
-curl -X DELETE \
-  -d 'champs={"id":"0001"}' \
-  "http://localhost/rest_mediatekdocuments/livre"
-```
-
----
-
-## DELETE /dvd
-Exemple :
-```bash
-curl -X DELETE \
-  -d 'champs={"id":"2001"}' \
-  "http://localhost/rest_mediatekdocuments/dvd"
-```
-
----
-
-## DELETE /revue
-Exemple :
-```bash
-curl -X DELETE \
-  -d 'champs={"id":"1001"}' \
-  "http://localhost/rest_mediatekdocuments/revue"
-```
-
----
-
-## DELETE /exemplaire
-- requis : `champs.id`, `champs.numero`
-
-Exemple :
-```bash
-curl -X DELETE \
-  -d 'champs={"id":"1001","numero":"00001"}' \
-  "http://localhost/rest_mediatekdocuments/exemplaire"
-```
-
----
-
-## DELETE /commandedocument
-- requis : `champs.id`
-
-Exemple :
-```bash
-curl -X DELETE \
-  -d 'champs={"id":"00012"}' \
-  "http://localhost/rest_mediatekdocuments/commandedocument"
-```
-
----
-
-## DELETE /abonnement
-- requis : `champs.id`
-
-Exemple :
-```bash
-curl -X DELETE \
-  -d 'champs={"id":"00077"}' \
-  "http://localhost/rest_mediatekdocuments/abonnement"
-```
-
----
-
-## DELETE /{table}/{json} (optionnel)
-Le `.htaccess` autorise de passer `champs` dans l’URL pour DELETE.
-
-Exemple (suppression filtrée) :
-```bash
-curl -X DELETE \
-  "http://localhost/rest_mediatekdocuments/service/%7B%22id%22%3A%22S9%22%7D"
-```
-
----
-
-# 8) Conseils Postman / curl
-
-## Postman : où mettre `champs` ?
-Le plus simple :
-- Method : GET/POST/PUT/DELETE
-- URL : `http://localhost/rest_mediatekdocuments/<table>` (ex: `/livre`)
-- Body (pour POST/PUT/DELETE) :
-    - `x-www-form-urlencoded`
-    - clé : `champs`
-    - valeur : un JSON (ex: `{"id":"0001"}`)
-
-## PUT/DELETE : Content-Type
-En curl, si besoin :
-```bash
--H "Content-Type: application/x-www-form-urlencoded"
-```
-
-## JSON dans l’URL
-Possible, mais fragile : il faut URL-encoder.
-À réserver aux tests simples en GET.
-
----
-
-# 9) Cheatsheet
-
-- Livres : `GET http://localhost/rest_mediatekdocuments/livre`
-- DVD : `GET http://localhost/rest_mediatekdocuments/dvd`
-- Revues : `GET http://localhost/rest_mediatekdocuments/revue`
-- Genres/Public/Rayon/Etat :
-    - `GET http://localhost/rest_mediatekdocuments/genre`
-    - `GET http://localhost/rest_mediatekdocuments/public`
-    - `GET http://localhost/rest_mediatekdocuments/rayon`
-    - `GET http://localhost/rest_mediatekdocuments/etat`
-
-- Exemplaires d’un doc :
-    - `GET http://localhost/rest_mediatekdocuments/exemplaire/{json_url_encodé}`
-    - ou envoyer `champs` via querystring vers `src/index.php` si tu préfères
-
-- Auth applicative :
-    - `POST http://localhost/rest_mediatekdocuments/authentification` + body `champs={"login":"...","password":"..."}`
-
-- Créer :
-    - `POST /livre` / `POST /dvd` / `POST /revue` (avec `champs`)
-    - `POST /commandedocument` (avec `champs`)
-    - `POST /abonnement` (avec `champs`)
-
-- Modifier :
-    - `PUT /livre/{id}` (avec `champs`)
-    - `PUT /dvd/{id}` (avec `champs`)
-    - `PUT /revue/{id}` (avec `champs`)
-    - `PUT /commandedocument/{id}` (avec `champs`)
-    - `PUT /exemplaire` (avec `champs` contenant id/numero/idEtat)
-
-- Supprimer :
-    - `DELETE /livre` (avec `champs={"id":"..."}`)
-    - `DELETE /dvd` (avec `champs={"id":"..."}`)
-    - `DELETE /revue` (avec `champs={"id":"..."}`)
-    - `DELETE /commandedocument` (avec `champs={"id":"..."}`)
-    - `DELETE /abonnement` (avec `champs={"id":"..."}`)
-    - `DELETE /exemplaire` (avec `champs={"id":"...","numero":"..."}`)
